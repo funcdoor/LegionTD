@@ -18,9 +18,7 @@ function RepelResetter( keys )
 	print ("spell applied")
 
 	Timers:CreateTimer(cooldown, function()
-		if caster and ability then
-			ability:ApplyDataDrivenModifier(caster, caster, modifier_time, {})
-		end
+		ability:ApplyDataDrivenModifier(caster, caster, modifier_time, {})
 	end)
 
 	print ("timer created")
