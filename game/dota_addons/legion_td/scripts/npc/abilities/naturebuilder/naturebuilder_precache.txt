@@ -5,7 +5,8 @@
 
     "precache"
     {
-    	"model" 	"models/items/beastmaster/boar/beast_deming/beast_deming.vmdl"				// tower_naturebuilder_agressive_boar
+    	"particle"  "particles/units/heroes/hero_pugna/pugna_ward_attack.vpcf"                  // nature builder passive
+        "model" 	"models/items/beastmaster/boar/beast_deming/beast_deming.vmdl"				// tower_naturebuilder_agressive_boar
     	"soundfile"	"soundevents/game_sounds_heroes/game_sounds_beastmaster.vsndevts"			// tower_naturebuilder_agressive_boar
     	"model"     "models/items/lone_druid/viciouskraitpanda/viciouskrait_panda.vmdl"			// tower_naturebuilder_bear
     	"soundfile"	"soundevents/game_sounds_heroes/game_sounds_lone_druid.vsndevts"			// tower_naturebuilder_bear
@@ -38,6 +39,8 @@
     	"soundfile"	"soundevents/game_sounds_heroes/game_sounds_broodmother.vsndevts"			// tower_naturebuilder_spider
     	"model"		"models/items/furion/treant/furion_treant_nelum_red/furion_treant_nelum_red.vmdl"	//tower_naturebuilder_treant
     	"soundfile" "soundevents/game_sounds_heroes/game_sounds_furion.vsndevts"					// tower_naturebuilder_treant
+        "particle"  "particles/units/heroes/hero_treant/treant_foot_step.vpcf"                  // tower_naturebuilder_treebeard
+
 
 
     	"soundfile"	"soundevents/game_sounds_heroes/game_sounds_centaur.vsndevts"				// centaur_hoof_stomp_datadriven
