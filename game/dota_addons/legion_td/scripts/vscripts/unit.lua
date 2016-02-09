@@ -9,16 +9,12 @@ ai_standard = require('ai/ai_core')
 ai_broodmother = require('ai/naturebuilder/ai_broodmother')
 ai_bigcentaur = require('ai/naturebuilder/ai_bigcentaur')
 --Elementalbuilder AI
-ai_earthgod = require('ai/elementalbuilder/ai_earthgod')
 ai_fireelemental = require('ai/elementalbuilder/ai_fireelemental')
 ai_firegod = require('ai/elementalbuilder/ai_firegod')
-ai_firewarrior = require('ai/elementalbuilder/ai_firewarrior')
 ai_thunderelemental = require('ai/elementalbuilder/ai_thunderelemental')
 ai_thundergod = require('ai/elementalbuilder/ai_thundergod')
 ai_thunderwarrior = require('ai/elementalbuilder/ai_thunderwarrior')
 ai_voidelemental = require('ai/elementalbuilder/ai_voidelemental')
-ai_voidgod = require('ai/elementalbuilder/ai_voidgod')
-ai_watergod = require('ai/elementalbuilder/ai_watergod')
 ai_waterwarrior = require('ai/elementalbuilder/ai_waterwarrior')
 --Humanbuilder AI
 ai_militia = require('ai/humanbuilder/ai_militia')
@@ -47,17 +43,22 @@ end
 
 
 function Unit:Spawn()
-  self.npc = CreateUnitByName(self.npcclass, self.spawnposition, false, nil,
-  self.owner, self.owner:GetTeamNumber())
-  if self.spawnposition.y > 0 then
-    self.npc:SetAngles(0, 90, 0)
-  else
-    self.npc:SetAngles(0, 270, 0)
-  end
-  self.npc.unit = self
-  self.npc.player = self.player
-  self.npc.nextTarget = self.nextTarget
-  self:Lock()
+  --PrecacheUnitByNameAsync(self.npcclass, function () 
+    self.npc = CreateUnitByName(self.npcclass, self.spawnposition, false, nil,
+    self.owner, self.owner:GetTeamNumber())
+    if self.spawnposition.y > 0 then
+      self.npc:SetAngles(0, 90, 0)
+    else
+      self.npc:SetAngles(0, 270, 0)
+    end
+    self.npc.unit = self
+    self.npc.player = self.player
+    self.npc.nextTarget = self.nextTarget
+    self.npc:SetMinimumGoldBounty(self.foodCost)
+    self.npc:SetMaximumGoldBounty(self.foodCost)
+    self:Lock()
+  --end
+  --)
 end
 
 
@@ -66,16 +67,16 @@ function Unit.ApplyAI(unit)
   local name = unit:GetUnitName()
   if name == "tower_naturebuilder_broodmother" then ai_broodmother.Init(unit)
   elseif name == "tower_naturebuilder_big_centaur" then ai_bigcentaur.Init(unit)
-  elseif name == "tower_elementalbuilder_earthgod" then ai_earthgod.Init(unit)
+  elseif name == "tower_elementalbuilder_earthgod" then return
   elseif name == "tower_elementalbuilder_fireelemental" then ai_fireelemental.Init(unit)
   elseif name == "tower_elementalbuilder_firegod" then ai_firegod.Init(unit)
-  elseif name == "tower_elementalbuilder_firewarrior" then ai_firewarrior.Init(unit)
+  elseif name == "tower_elementalbuilder_firewarrior" then return
   elseif name == "tower_elementalbuilder_thunderelemental" then ai_thunderelemental.Init(unit)
   elseif name == "tower_elementalbuilder_thundergod" then ai_thundergod.Init(unit)
   elseif name == "tower_elementalbuilder_thunderwarrior" then ai_thunderwarrior.Init(unit)
   elseif name == "tower_elementalbuilder_voidelemental" then ai_voidelemental.Init(unit)
-  elseif name == "tower_elementalbuilder_voidgod" then ai_voidgod.Init(unit)
-  elseif name == "tower_elementalbuilder_watergod" then ai_watergod.Init(unit)
+  elseif name == "tower_elementalbuilder_voidgod" then return
+  elseif name == "tower_elementalbuilder_watergod" then return
   elseif name == "tower_elementalbuilder_waterwarrior" then ai_waterwarrior.Init(unit)
   elseif name == "tower_humanbuilder_footman" then ai_footman.Init(unit)
   elseif name == "tower_humanbuilder_soldier" then ai_soldier.Init(unit)
@@ -169,12 +170,16 @@ function sell(event)
   local unit = event.caster.unit
   local player = unit.player
   unit:RemoveNPC()
+  Timers:CreateTimer(1, function ()
+      UTIL_RemoveImmediate(unit.npc)
+    end)
   local gold = unit.goldCost / 2
   if unit.buyround == Game:GetCurrentRound() then
     gold = unit.goldCost
   end
   PlayerResource:ModifyGold(player:GetPlayerID(), gold, true, DOTA_ModifyGold_Unspecified)
   table.remove(unit.player.units, unit.player:GetUnitKey(unit))
+  player:RefreshPlayerInfo()
 end
 
 
@@ -225,8 +230,20 @@ function OnStartTouch(trigger) -- trigger at end of lane to teleport to final de
   if npc.unit and not npc:IsRealHero() then
     if not (npc:GetTeamNumber() == DOTA_TEAM_NEUTRALS) then
       npc.nextTarget = Game.lastDefends[""..npc:GetTeamNumber()]:GetAbsOrigin()
-      FindClearSpaceForUnit(npc, npc.nextTarget, true)
-      npc:Stop()
+      if npc:GetAttackCapability() == DOTA_UNIT_CAP_RANGED_ATTACK then
+        FindClearSpaceForUnit(npc, Game.lastDefendsRanged[""..npc:GetTeamNumber()]:GetAbsOrigin(), true)
+        npc.nextTarget.y = npc.nextTarget.y - 200
+      else
+        FindClearSpaceForUnit(npc, npc.nextTarget, true)
+      end
+      ExecuteOrderFromTable({
+            UnitIndex = npc:entindex(), 
+            OrderType = DOTA_UNIT_ORDER_ATTACK_MOVE,
+            TargetIndex = 0, --Optional.  Only used when targeting units
+            AbilityIndex = 0, --Optional.  Only used when casting abilities
+            Position = npc.nextTarget, --Optional.  Only used when targeting the ground
+            Queue = 0 --Optional.  Used for queueing up abilities
+          })
     end
   end
 end

@@ -29,12 +29,12 @@
 	"AttackDamageMax"       "225.0"
 	"AttackRate"            "0.5"
 	"AttackAnimationPoint"  "0.5"
-	"AttackAcquisitionRange" "500"
+	"AttackAcquisitionRange" "850"
 	"AttackRange"           "100"
 	"ProjectileModel"       ""
 	"ProjectileSpeed"       "0"
 
-	"Legion_AttackType"		"pierce"
+	"Legion_AttackType"		"normal"
 	"Legion_DefendType"		"heavy"
 
 	// Bounty

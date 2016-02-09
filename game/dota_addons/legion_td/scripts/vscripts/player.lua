@@ -6,11 +6,12 @@ end
 function Player.new(plyEntitie, userID)
   local self = Player()
   self.plyEntitie = plyEntitie
-  self.teamnumber = self:GetTeamNumber()
+  self.teamnumber = self:GetTeamNumber() -- new players don't have a team number so this is worthless here
   plyEntitie.myPlayer = self
   self.userID = userID
   self.units = {}
   self.tangos = START_TANGO
+  self.tangoLimit = 125
   self.tangoAddAmount = START_TANGO_ADD_AMOUNT
   self.tangoAddSpeed = START_TANGO_ADD_SPEED
   self.tangoAddProgress = 0
@@ -18,6 +19,9 @@ function Player.new(plyEntitie, userID)
   self.foodlimit = START_FOOD_LIMIT
   self.leaks = 0
   self.leaksPenalty = 0
+  self.buildingUpgradeValue = 0
+  self.missedSpawns = 0
+  self.abandoned = false
   return self
 end
 
@@ -26,7 +30,7 @@ function Player:SetPlayerEntitie(plyEntitie, userID)
   self.plyEntitie = plyEntitie
   self.userID = userID
   plyEntitie.myPlayer = self
-  if self.lane then
+  if self.lane and not self.abandoned then
     self.lane.isActive = true
   end
   for _,unit in pairs(self.units) do
@@ -56,8 +60,8 @@ function Player:SetNPC(npc)
   self.hero = npc
   self.playerID = self:GetPlayerID()
   npc.player = self
-
-
+  self.teamnumber = self.hero:GetTeamNumber()
+  print ("new player set to team " .. self.teamnumber)
   local laneID = self.hero:GetTeamNumber() == DOTA_TEAM_GOODGUYS and 1 or 5
   if self.hero:GetTeamNumber() == DOTA_TEAM_GOODGUYS then
     laneID = 1
@@ -195,9 +199,6 @@ end
 --adds tangos
 function Player:AddTangos(amount)
   self.tangos = self.tangos + amount
-  if Game.withIncomeLimit and self.tangos > Game:GetTangoLimit() then
-    self.tangos = Game:GetTangoLimit()
-  end
   self:RefreshPlayerInfo()
 end
 
@@ -209,6 +210,7 @@ function Player:RefreshPlayerInfo()
       playerID = self:GetPlayerID(),
       leaks = self.leaks,
       tangoCount = self.tangos,
+      maxTangos = self.tangoLimit,
       goldIncome = self.income,
       tangoIncome = math.floor(self.tangoAddAmount / self.tangoAddSpeed * 60),
       currentFood = self:GetUsedFood(),
@@ -297,14 +299,17 @@ end
 
 
 function Player:CreateTangoTicker()
-  if (not Timers.timers[self.timer]) and (self.lane.mainBuilding) then
+  if (not Timers.timers[self.timer]) and (self.lane.mainBuilding) and (Game:GetCurrentRound()) then
 
     self.timer = Timers:CreateTimer(function()
 
       if Game.gameState == GAMESTATE_PREPARATION and Game.gameRound == STARTING_ROUND then return (1/30) end
+      if self.abandoned == true then return end
+      if Game:GetCurrentRound().isDuelRound then return end
       
       local tangoDelay = self.tangoAddSpeed
       if self.leaked then tangoDelay = self.tangoAddSpeed + (self.tangoAddSpeed * LEAKED_TANGO_MULTIPLIER * self.leaksPenalty) end
+      if self.tangos > self.tangoLimit then tangoDelay = tangoDelay * 5 end -- slow down production while over the maximum
       self.tangoAddProgress = self.tangoAddProgress + 1/tangoDelay/30
       local i = self.tangoAddProgress*math.pi*2
       if self.lane.mainBuilding:GetAbsOrigin().y > 0 then
@@ -337,4 +342,35 @@ end
 
 function Player:IsActive()
   return self.lane and self.lane.isActive
+end
+
+function Player:Abandon()
+  print ("abandoning player on team " .. self.teamnumber)
+  local goldValue = PlayerResource:GetGold(self:GetPlayerID()) -- gold in pocket
+  print ("abandoning player had " .. goldValue .. " gold in pocket")
+  goldValue = goldValue + self.buildingUpgradeValue -- gold in building upgrades
+  print ("plus building upgrades: " .. goldValue)
+  for _, unit in pairs(self.units) do -- gold in built units
+    goldValue = goldValue + unit.goldCost
+    unit:RemoveNPC()
+  end
+  self.units = {}
+  print ("plus units: " .. goldValue)
+  distributePlayers = {}
+  for _, player in pairs(Game.players) do
+    if player:IsActive() == true and player.teamnumber == self.teamnumber then
+      print ("player " .. player:GetPlayerID() .. " (teamnumber " .. player.teamnumber .. ") is eligible!")
+      table.insert(distributePlayers, player)
+    end
+  end
+  goldEach = math.floor(goldValue/#distributePlayers)
+  GameRules:SendCustomMessage("player abandoned. " .. goldEach .. " gold distributed to each remaining player.", 0, 0)
+  PlayerResource:SetGold(self:GetPlayerID(), 0, true)
+  PlayerResource:SetGold(self:GetPlayerID(), 0, false)
+  print ("distributing " .. goldEach .. " abandon gold to " .. #distributePlayers .. " players")
+  for _, player in pairs (distributePlayers) do
+    print ("cha-ching")
+    player.hero:ModifyGold(goldEach, true, DOTA_ModifyGold_Unspecified)
+  end
+  self.abandoned = true
 end

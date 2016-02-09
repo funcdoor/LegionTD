@@ -167,6 +167,7 @@ function Game.new()
   CustomGameEventManager:RegisterListener("send_unit", Dynamic_Wrap(Game, "SendUnit"))
   CustomGameEventManager:RegisterListener("upgarde_king", Dynamic_Wrap(Game, "UpgradeKing"))
   CustomGameEventManager:RegisterListener("toggle_income_limit", Dynamic_Wrap(Game, "ToggleIncomeLimit"))
+  CustomGameEventManager:RegisterListener("toggle_return_to_sender", Dynamic_Wrap(Game, "ToggleReturnToSender"))
   return self
 end
 
@@ -182,6 +183,7 @@ function Game:ReadConfiguration()
   self.initPrepTime = kv.FirstPrepTime
   self.timeBetweenRounds = kv.PrepTimeBetweenRounds
   self:ReadLastSpawn(kv["LastSpawn"])
+  self:ReadLastSpawnRanged(kv["LastSpawnRanged"])
   self:ReadIncomeSpawner(kv["IncomeSpawner"])
   self:ReadDuelSpawn(kv["DuelSpawn"])
   self:ReadDuelTargets(kv["DuelTarget"])
@@ -254,6 +256,21 @@ function Game:ReadLastSpawn(kvLast)
     local obj = Entities:FindByName(nil, sp.Name)
     if obj then
       self.lastDefends[ind] = obj
+    else
+      print(sp.Name.." not found.")
+    end
+  end
+end
+
+function Game:ReadLastSpawnRanged(kvLastR)
+  self.lastDefendsRanged = {}
+  if type(kvLastR) ~= "table" then
+    return
+  end
+  for ind,sp in pairs(kvLastR) do
+    local obj = Entities:FindByName(nil, sp.Name)
+    if obj then
+      self.lastDefendsRanged[ind] = obj
     else
       print(sp.Name.." not found.")
     end
@@ -358,12 +375,24 @@ function Game:Start()
   self.direBoss.damageBonus = START_DAMAGE_BONUS
   self.direBoss.regenBonus = START_BONUS_REGEN
   local incomeLimitCount = 0
+  local rtsVoteCount = 0
   for _,player in pairs(self.players) do
     if player.wantIncomeLimit == 1 then
       incomeLimitCount = incomeLimitCount + 1
     end
+    if player.wantRTS == 1 then
+      rtsVoteCount = rtsVoteCount + 1
+    end
   end
   self.withIncomeLimit = incomeLimitCount > (PlayerResource:GetPlayerCount() / 2)
+  self.returnToSenderActive = rtsVoteCount == PlayerResource:GetPlayerCount()
+  print("rtsVoteCount: " .. rtsVoteCount)
+  print("player count: " .. PlayerResource:GetPlayerCount())
+  if self.returnToSenderActive then
+    GameRules:SendCustomMessage("Return to Sender mode is active!", 0, 0)
+    print("return to sender is active")
+  end
+
   self:CreateGameTimer()
   -- GameRules:GetGameModeEntity():SetThink("OnThink", self, "Check", 0)
   self:Initialice()
@@ -462,6 +491,9 @@ function Game:RoundFinished()
   end
   self.gameRound = self.gameRound + 1
   self.gameState = GAMESTATE_PREPARATION
+  for _,player in pairs(self.players) do
+    player.tangoLimit = self:GetTangoLimit()
+  end
   if self.gameRound > #self.rounds then
     self.gameRound = self.gameRound - 1
     self.finishedWaves = true
@@ -483,6 +515,17 @@ function Game:StartNextRound()
     if player.lane and player.lane.isActive then --only repair leaks if lane is active
       player.leaked = false;
       player.leaksPenalty = 0;
+    end
+    if player.lane and (not player.lane.isActive) then
+      player.missedSpawns = player.missedSpawns + 1
+    end
+    if not player.abandoned then
+      if player.missedSpawns >= 3 or PlayerResource:GetConnectionState(player:GetPlayerID()) == DOTA_CONNECTION_STATE_ABANDONED then
+        player:Abandon()
+      end
+    end
+    if player.tangos > player.tangoLimit then
+      player.tangos = player.tangoLimit
     end
   end
   mode:SetFogOfWarDisabled(true)
@@ -564,11 +607,13 @@ function Game:OnNPCSpawned(key)
         end
       end
     else -- not a hero
-      local attack_type = Game.UnitKV[npc:GetUnitName()]["Legion_AttackType"] or "normal"
-      local defend_type = Game.UnitKV[npc:GetUnitName()]["Legion_DefendType"] or "medium"
-      print ("unit spawned with " .. attack_type .. "/" .. defend_type)
-      npc:AddNewModifier(npc, nil, "modifier_attack_" .. attack_type .. "_lua", {})
-      npc:AddNewModifier(npc, nil, "modifier_defend_" .. defend_type .. "_lua", {})
+      if Game.UnitKV[npc:GetUnitName()] then
+        local attack_type = Game.UnitKV[npc:GetUnitName()]["Legion_AttackType"] or "none"
+        local defend_type = Game.UnitKV[npc:GetUnitName()]["Legion_DefendType"] or "none"
+        print ("unit spawned with " .. attack_type .. "/" .. defend_type)
+        npc:AddNewModifier(npc, nil, "modifier_attack_" .. attack_type .. "_lua", {})
+        npc:AddNewModifier(npc, nil, "modifier_defend_" .. defend_type .. "_lua", {})
+      end
     end
   end
 end
@@ -600,6 +645,11 @@ function Game:OrderFilter(keys)
   local units = {}
   for _,key in pairs(keys.units) do
     table.insert(units, EntIndexToHScript(key))
+  end
+
+  local issuingPlayer = self:FindPlayerWithID(keys.issuer_player_id_const)
+  if issuingPlayer then
+    if issuingPlayer.abandoned == true then return false end
   end
 
   if order == DOTA_UNIT_ORDER_HOLD_POSITION then
@@ -719,6 +769,18 @@ end
 
 
 
+function Game:ToggleReturnToSender(data)
+print ("Game:ToggleReturnToSender invoked")
+  local lData = {
+    playerID = data.playerID,
+    value = data.value
+  }
+  local player = Game:FindPlayerWithID(lData.playerID)
+  player.wantRTS = data.value
+end
+
+
+
 --sends a unit
 function Game:SendUnit(data)
   local lData = {
@@ -736,7 +798,7 @@ function Game:SendUnit(data)
     local name = Game.GetUnitNameByID(lData.id)
     local unit = CreateUnitByName(name, spawn, true, nil, nil, team)
     unit.tangoValue = lData.cost
-    if team == 2 then
+    if team == 2 and not Game.returnToSenderActive then
       print ("adding unit to Game.sendRadiant")
       table.insert(Game.sendRadiant, unit)
     else

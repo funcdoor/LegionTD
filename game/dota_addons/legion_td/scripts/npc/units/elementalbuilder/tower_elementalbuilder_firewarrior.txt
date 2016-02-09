@@ -9,6 +9,7 @@
 	"GameSoundsFile"				"soundevents/game_sounds_heroes/game_sounds_ember_spirit.vsndevts"
 	"Level"                 "1"
 	"HealthBarOffset"       "150"
+	"Vscripts"              "ai/elementalbuilder/ai_firewarrior.lua"
 
 	"Ability4"							"sell"
 	"Ability3"				"ability_empty_3"
@@ -28,7 +29,7 @@
 	"AttackDamageMax"       "187.5"
 	"AttackRate"            "0.8"
 	"AttackAnimationPoint"  "0.5"
-	"AttackAcquisitionRange" "500"
+	"AttackAcquisitionRange" "850"
 	"AttackRange"           "100"
 	"ProjectileModel"       ""
 	"ProjectileSpeed"       "0"

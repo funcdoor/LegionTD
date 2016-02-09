@@ -7,7 +7,6 @@ LAST_WAVE_HEALTH_PER_ROUND = 2000;
 
 ai_standard = require('ai/ai_core')
 ai_techies = require('ai/waves/ai_techies')
-ai_fatty = require('ai/waves/ai_fatty')
 ai_dragon = require('ai/waves/ai_dragon')
 ai_deathprophet = require('ai/waves/ai_deathprophet')
 ai_ogre = require('ai/waves/ai_ogre')
@@ -37,7 +36,7 @@ function GameSpawner:Spawn()
   for key,value in pairs(spawners) do
     if value.isActive then
       local polar = 1
-      local spacing = 96
+      local spacing = 128
       if value.spawnpoint:GetAbsOrigin().y < 0 then polar = -1 end
       local rank1 = value.spawnpoint:GetAbsOrigin()
       local positions = {}
@@ -104,7 +103,6 @@ end
 function GameSpawner.ApplyAI(creep)
   local name = creep:GetUnitName()
   if name == "unit_techies" then ai_techies.Init(creep)
-  elseif name == "unit_fatty" then ai_fatty.Init(creep)
   elseif name == "unit_dragon" then ai_dragon.Init(creep)
   elseif name == "unit_deathprophet" then ai_deathprophet.Init(creep)
   elseif name == "unit_ogre" then ai_ogre.Init(creep)
@@ -201,7 +199,7 @@ function GameSpawner:SendIncomingUnits(team)
     local lane = spawners[theLane]
     local unitCount = #units
     local polar = 1
-    local spacing = 96
+    local spacing = 128
     if lane.spawnpoint:GetAbsOrigin().y < 0 then polar = -1 end
     local rank1 = lane.spawnpoint:GetAbsOrigin()
     local positions = {}
@@ -238,6 +236,7 @@ function GameSpawner:SendIncomingUnits(team)
           table.insert(unit.waypoints, lane.waypoints[j] + positions[k])
         end
 
+        unit.waypoints[4].y = unit.waypoints[4].y -- make final waypoint y aligned with king regardless of formation rank
         unit.wayStep = 2
 
         ExecuteOrderFromTable({

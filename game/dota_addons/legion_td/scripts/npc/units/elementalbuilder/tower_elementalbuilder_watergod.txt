@@ -9,6 +9,7 @@
 	"GameSoundsFile"				"soundevents/game_sounds_heroes/game_sounds_ancient_apparition.vsndevts"
 	"Level"                 "1"
 	"HealthBarOffset"       "150"
+	"Vscripts"              "ai/elementalbuilder/ai_watergod.lua"
 
 	"Ability4"							"sell"
 	"Ability3"				"ability_empty_3"
@@ -28,7 +29,7 @@
 	"AttackDamageMax"       "250.0"
 	"AttackRate"            "1.1"
 	"AttackAnimationPoint"  "0.5"
-	"AttackAcquisitionRange" "500"
+	"AttackAcquisitionRange" "850"
 	"AttackRange"           "375"
 	"ProjectileModel"       "particles/units/heroes/hero_ancient_apparition/ancient_apparition_base_attack.vpcf" //hierbin ich
 	"ProjectileSpeed"       "700"

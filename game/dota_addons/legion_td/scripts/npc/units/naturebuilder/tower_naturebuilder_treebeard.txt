@@ -29,7 +29,7 @@
 	"AttackDamageMax"       "325"
 	"AttackRate"            "1"
 	"AttackAnimationPoint"  "0.6"
-	"AttackAcquisitionRange" "500"
+	"AttackAcquisitionRange" "850"
 	"AttackRange"           "100"
 	"ProjectileModel"       ""
 	"ProjectileSpeed"       "0"
@@ -55,7 +55,7 @@
 
 	// Status
 	//----------------------------------------------------------------
-	"StatusHealth"          "1100"
+	"StatusHealth"          "1220"
 	"StatusHealthRegen"     "0"
 	"StatusMana"            "0"
 	"StatusManaRegen"       "0"

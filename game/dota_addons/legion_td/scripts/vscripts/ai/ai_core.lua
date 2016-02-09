@@ -90,21 +90,24 @@ end
 
 function NextWayPoint(self)
 --	print("lane creep hit waypoint " .. self.wayStep)
-		if self.wayStep < 4 then self.wayStep = self.wayStep + 1 end
-		ExecuteOrderFromTable({
-          UnitIndex = self:entindex(), 
-          OrderType = DOTA_UNIT_ORDER_ATTACK_MOVE,
-          TargetIndex = 0, --Optional.  Only used when targeting units
-          AbilityIndex = 0, --Optional.  Only used when casting abilities
-          Position = self.waypoints[self.wayStep], --Optional.  Only used when targeting the ground
-          Queue = 0 --Optional.  Used for queueing up abilities
-        })
+		if self.wayStep < 4 then
+			self.wayStep = self.wayStep + 1
+			ExecuteOrderFromTable({
+	          UnitIndex = self:entindex(), 
+	          OrderType = DOTA_UNIT_ORDER_ATTACK_MOVE,
+	          TargetIndex = 0, --Optional.  Only used when targeting units
+	          AbilityIndex = 0, --Optional.  Only used when casting abilities
+	          Position = self.waypoints[self.wayStep], --Optional.  Only used when targeting the ground
+	          Queue = 0 --Optional.  Used for queueing up abilities
+	        })
+		end
+		
         return STANDARD_THINK_TIME
     end
 
 function Unstuck(self)
 	if self.wayStep then -- is this a wave/send creep?
---		print ("Unsticking unit with .WayStep")
+		print ("Unsticking unit with .WayStep")
 		ExecuteOrderFromTable({
           UnitIndex = self:entindex(), 
           OrderType = DOTA_UNIT_ORDER_ATTACK_MOVE,
@@ -114,7 +117,7 @@ function Unstuck(self)
           Queue = 0 --Optional.  Used for queueing up abilities
         })
 	elseif self.nextTarget then
---		print ("Unsticking unit with .nextTarget: " .. self.nextTarget.x .. ", " .. self.nextTarget.y)
+		print ("Unsticking unit with .nextTarget: " .. self.nextTarget.x .. ", " .. self.nextTarget.y)
 		self:Stop()
 		ExecuteOrderFromTable({
 	          UnitIndex = self:entindex(), 
@@ -125,7 +128,7 @@ function Unstuck(self)
 	          Queue = 0 --Optional.  Used for queueing up abilities
 	        })
 	end
-	return STANDARD_THINK_TIME
+	return 1.0
 end
 
 function CheckIfHasAggroInRange(self)

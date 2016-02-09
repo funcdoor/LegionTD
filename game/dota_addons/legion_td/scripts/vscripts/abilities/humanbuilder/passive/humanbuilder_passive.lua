@@ -9,7 +9,9 @@ function humanbuilder_passive_start(keys)
 		id = caster:GetPlayerID()
 		playerObj = Game:FindPlayerWithID(id)
 
-		print ("u have " .. #playerObj.units )
+		if not Game.gameState == GAMESTATE_PREPARATION then return 1 end
+
+		-- print ("u have " .. #playerObj.units )
 
 		-- for _, unitRef in pairs(playerObj.units) do
 		-- 	local unit = unitRef.npc

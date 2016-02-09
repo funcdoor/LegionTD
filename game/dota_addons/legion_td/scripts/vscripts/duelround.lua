@@ -19,6 +19,7 @@ function DuelRound.new(data, roundNumber, determinWinner)
   self.remainingUnitsDire = {}
   self.roundNumber = roundNumber
   self.winningCondition = determinWinner
+  self.playerscores = {}
   return self
 end
 
@@ -60,6 +61,13 @@ function DuelRound:OnEntityKilled(event)
       table.remove(team, i)
       break
     end
+  end
+  if event.entindex_attacker ~= nil then
+    killerunit = EntIndexToHScript(event.entindex_attacker)
+    killerID = killerunit:GetPlayerOwnerID()
+    if self.playerscores[killerID] == nil then self.playerScores[killerID] = 0 end
+    self.playerscores[killerID] = self.playerscores[killerID] + killed:GetMinimumGoldBounty()
+    print(killerID .. ": " .. self.playerscores[killerID])
   end
   self:CheckEnd()
 end
@@ -113,8 +121,10 @@ end
 --Ende einer Runde
 function DuelRound:End()
   self.winningTeam = DOTA_TEAM_GOODGUYS
+  local victoryText = "Radiant wins the duel and win "
   if next(self.remainingUnitsRadiant) == nil then
     self.winningTeam = DOTA_TEAM_BADGUYS
+    victoryText = "Dire wins the duel and win "
   end
   if self.determinWinner then
     GameRules:SetGameWinner(self.winningTeam)
@@ -126,6 +136,7 @@ function DuelRound:End()
   Timers.timers[self.unstuckTimer] = nil
   self.unstuckTimer = nil
   self.EventHandles = {}
+  GameRules:SendCustomMessage(victoryText .. self.bounty .. " extra gold each!", 0, 0)
   Game:RoundFinished()
 end
 
